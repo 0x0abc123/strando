@@ -6,6 +6,7 @@ import (
 	"strando/worddata"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 )
 
 const defaultLength = 32
@@ -27,17 +28,39 @@ func abs(n int) int {
 	return n
 }
 
-func generateRandomInt() (int, error) {
-
-	randomBytes := make([]byte, 8)
+func generateRandomBytes(length int) ([]byte, error) {
+	randomBytes := make([]byte, length)
 
 	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return 0, err
+
+	return randomBytes, err
+}
+
+func generateGuid() (string, error) {
+
+	randomBytes, err := generateRandomBytes(16)
+
+	// Set the first two bits of the 5th byte to 0b10
+	if len(randomBytes) >= 5 {
+		randomBytes[6] &= 0b00001111 // Clear the first four bits
+		randomBytes[6] |= 0b01000000 // Set the second bit to 1 to indicate UUID version 4
+		randomBytes[8] &= 0b00111111 // Clear the first two bits
+		randomBytes[8] |= 0b10000000 // Set the first bit to 1
 	}
 
+	hexString := hex.EncodeToString(randomBytes)
+
+	// 8-4-4-4-12 format
+	guidString := hexString[0:8] + "-" + hexString[8:12] + "-" + hexString[12:16] + "-" + hexString[16:20] + "-" + hexString[20:32]
+
+	return guidString, err
+}
+
+func generateRandomInt() (int, error) {
+
+	randomBytes, err := generateRandomBytes(8)
 	randomInt := int(binary.BigEndian.Uint64(randomBytes))
-	return randomInt, nil
+	return randomInt, err
 }
 
 func generateRandomString(length int, charset string) string {
@@ -77,7 +100,10 @@ func main() {
 
 	randomString := ""
 
-	if complexity > 0 {
+	if complexity == 4 {
+		randomString, _ = generateGuid()
+
+	} else if complexity > 0 {
 	
 		charset := charset_3
 
